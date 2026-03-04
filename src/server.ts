@@ -167,7 +167,11 @@ export class ChatAgent extends AIChatAgent<Env> {
           execute: async({ url }) => {
             try {
               // console.log("hello")
-              const res = await fetch(url);
+              const res = await fetch(url, 
+                {headers: {
+                  "user-agent": "research-agent"
+                }}
+              );
               // console.log("hello")
               
               if (!res.ok) {

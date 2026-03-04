@@ -192,8 +192,22 @@ function Chat() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const toasts = useKumoToastManager();
 
+  const agentName = useState(() => {
+    const storageKey = "cf_agent_session_id";
+    try {
+      const exist = localStorage.getItem(storageKey);
+      if (exist) return `session-${exist}`
+      const sid = crypto.randomUUID();
+      localStorage.setItem(storageKey, sid);
+      return `session-${sid}`
+    } catch {
+      return `session-${crypto.randomUUID()}`;
+    }
+  })[0];
+
   const agent = useAgent({
     agent: "ChatAgent",
+    name: agentName,
     onOpen: useCallback(() => setConnected(true), []),
     onClose: useCallback(() => setConnected(false), []),
     onError: useCallback(
