@@ -35,16 +35,16 @@ export class ChatAgent extends AIChatAgent<Env> {
       system: `You are a Research agent: An AI that helps users research 
       topics from links and notes.
       
-      When the user provides urls, you should:
-      - Use fetchUrl on each url
-      - Summarize each source separately
-      - Provide a combined summarization with the key takeaways, uncertainty, and open questions
-      - Ask the user whether they want to save this synthesis as a note. If yes, use saveNote
-      
+      When the user provides url(s), you should:
+      - run runResearchPipeline
+     
       You are also able to list all notes with listNotes.
       
-      Please only use saveNote when you have the user's permission. Do not saveNote automatically.`
-
+      Please only use saveNote when you have the user's permission. Do not saveNote automatically.
+      
+      If the workflow is waiting for approval to save a note, tell the user to type 'approve' or 'reject'.
+      If the user types approve/reject, call the approve/rejecttool.
+      `      
       ,
       // Prune old tool calls to save tokens on long conversations
       messages: pruneMessages({
@@ -167,7 +167,33 @@ export class ChatAgent extends AIChatAgent<Env> {
           }),
           execute: async ({urls}) => {
             const instanceId = await this.runWorkflow("RESEARCH_WORKFLOW", {urls});
-            return instanceId
+            return {workflowId: instanceId}
+          }
+        }),
+
+        approve: tool({
+          description: "Approve the pending workflow approval gate. Use when the user says 'approve' or 'yes save'.",
+          inputSchema: z.object({ workflowId: z.string().optional() }),
+          execute: async ({ workflowId }) => {
+            const pending = await this.ctx.storage.get<any>("last_pending_workflow");
+            const id = workflowId ?? pending?.workflowId;
+            if (!id) return { success: false, error: "No pending workflow found." };
+
+            await this.approveWorkflow(id, { reason: "Approved by user in chat" });
+            return { ok: true, workflowId: id };
+          }
+        }),
+
+        reject: tool({
+          description: "Reject the pending workflow approval gate. Use when the user says 'rejent' or 'no don't save'.",
+          inputSchema: z.object({ workflowId: z.string().optional() }),
+          execute: async ({ workflowId }) => {
+            const pending = await this.ctx.storage.get<any>("last_pending_workflow");
+            const id = workflowId ?? pending?.workflowId;
+            if (!id) return { success: false, error: "No pending workflow found." };
+
+            await this.approveWorkflow(id, { reason: "Rejected by user in chat" });
+            return { success: true, workflowId: id };
           }
         }),
 
@@ -219,7 +245,6 @@ export class ChatAgent extends AIChatAgent<Env> {
               sources: sources ?? [],
               createdAt: new Date().toISOString()
             };
-            // const key = id + " Title: " + title
             await this.ctx.storage.put(title, note);
             return {success: true, note}
           }
@@ -229,16 +254,32 @@ export class ChatAgent extends AIChatAgent<Env> {
           description: "List the saved research notes",
           inputSchema: z.object({}),
           execute: async({}) => {
+            // const list = await this.ctx.storage.list();
+
+            // for (const key of list.keys()) {
+            //   await this.ctx.storage.delete(key);
+            // }
+            
+
             const list = await this.ctx.storage.list<ResearchNote>({
-              // prefix: "note"
+              // prefix: "Title: "
             });
-            const notes = Array.from(list.values()).map((n) => ({
-              id: n.id,
-              title: n.title,
-              createdAt: n.createdAt,
-              sources: n.sources,
-              preview: n.content.slice(0,180)
-            }));
+            // const notes = Array.from(list.values()).map((n) => ({
+            //   id: n.id,
+            //   title: n.title,
+            //   createdAt: n.createdAt,
+            //   sources: n.sources,
+            //   preview: n.content.slice(0,180)
+            // }));
+            const notes = Array.from(list.entries())
+              .filter(([key]) => key !== "last_pending_workflow")
+              .map(([_, n]) => ({
+                id: n.id,
+                title: n.title,
+                createdAt: n.createdAt,
+                sources: n.sources,
+                preview: n.content.slice(0, 180)
+              }));
             
             notes.sort((a,b) => (a.createdAt < b.createdAt ? 1 : -1));
             return notes.length ? notes : "No notes saved yet";
@@ -307,10 +348,48 @@ export class ChatAgent extends AIChatAgent<Env> {
       sources: input.sources,
       createdAt: new Date().toISOString()
     };
-    // const key = id + " Title: " + title
+    // const new_title = "Title: " + input.title
     await this.ctx.storage.put(input.title, note);
     return input.title
   }
+
+  async onWorkflowProgress(workflowName: string, workflowId: string, progress: unknown): Promise<void> {
+    await this.ctx.storage.put("last_pending_workflow", {workflowName, workflowId, progress});
+    const p = progress as { step: string; status: string; message?: string };
+    this.broadcast(JSON.stringify({type: "workflow-progress", workflowName, workflowId, progress}))
+
+    // if (p.step === "approval" && p.status === "pending") {
+    //   this.broadcast(JSON.stringify({type: "workflow-progress", workflowName, workflowId, progress}))
+
+    // }
+  }
+
+  // @callable()
+  // async approve(workflowId: string): Promise<void> {
+  //   await this.approveWorkflow(workflowId, {
+  //     reason: "Synthesis approved",
+  //     metadata: { approvedAt: Date.now() },
+  //   });
+
+    // Update state to reflect approval
+    // this.setState({
+    //   ...this.state,
+    //   pendingApprovals: this.state.pendingApprovals.filter(
+    //     (p) => p.workflowId !== workflowId,
+    //   ),
+    // });
+  // }
+
+  // async reject(workflowId: string): Promise<void> {
+  //   await this.rejectWorkflow(workflowId);
+
+    // this.setState({
+    //   ...this.state,
+    //   pendingApprovals: this.state.pendingApprovals.filter(
+    //     (p) => p.workflowId !== workflowId,
+    //   ),
+    // });
+  // }
 
 }
 

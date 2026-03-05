@@ -52,11 +52,12 @@ export class ResearchWorkflow extends AgentWorkflow<ChatAgent, Params> {
         const output = await generateText({
             model: workersai("@cf/qwen/qwen3-30b-a3b-fp8"),
             prompt: `
-            Generate a title based on this synthesis.
+            Generate an extremely simple and short title based on this synthesis.
+            Do not output 'Title: ..' Just simply output the title name
             
             SYNTHESIS: ${synthesis}`
         });
-        return output.text;
+        return output.text.trim();
     });
     console.log("here5")
     
