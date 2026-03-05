@@ -13,6 +13,7 @@ import {
 } from "ai";
 import { z } from "zod";
 import { notStrictEqual } from "node:assert";
+export { ResearchWorkflow } from "./workflow";
 
 type ResearchNote = {
   id: string;
@@ -159,6 +160,17 @@ export class ChatAgent extends AIChatAgent<Env> {
         //   }
         // }),
 
+        runResearchPipeline: tool({
+          description: "Run the research workflow on URLs, then ask the user if it should be saved as a note.",
+          inputSchema: z.object({
+            urls: z.array(z.httpUrl())
+          }),
+          execute: async ({urls}) => {
+            const instanceId = await this.runWorkflow("RESEARCH_WORKFLOW", {urls});
+            return instanceId
+          }
+        }),
+
         fetchUrl: tool({
           description: "Get a webpage by the url and return plain text from it to summarize",
           inputSchema: z.object({
@@ -285,6 +297,21 @@ export class ChatAgent extends AIChatAgent<Env> {
       })
     );
   }
+
+  async saveNoteFromWorkflow( input: {title: string; content: string; sources: string[]}) {
+    const id = `note:${Date.now()}`;
+    const note: ResearchNote = {
+      id: id,
+      title: input.title,
+      content: input.content,
+      sources: input.sources,
+      createdAt: new Date().toISOString()
+    };
+    // const key = id + " Title: " + title
+    await this.ctx.storage.put(input.title, note);
+    return input.title
+  }
+
 }
 
 export default {
