@@ -1,5 +1,7 @@
 # Research Note Saver
 
+https://white-paper-63dc.maggiegao100-cf6.workers.dev/
+
 Workflow: 
 - Multi-step research pipeline: User provides url(s) and agent will analyze sources and generate synthesis. Will have human approval to approve/reject saving the note to long-term storage.
 
