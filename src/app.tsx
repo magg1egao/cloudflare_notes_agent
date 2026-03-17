@@ -188,6 +188,11 @@ function Chat() {
   const [connected, setConnected] = useState(false);
   const [input, setInput] = useState("");
   const [showDebug, setShowDebug] = useState(false);
+  const [pendingApproval, setPendingApproval] = useState<null | {
+    workflowName: string;
+    instanceId: string;
+    progress: any;
+  }>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const toasts = useKumoToastManager();
@@ -224,6 +229,15 @@ function Chat() {
               description: data.description,
               timeout: 0
             });
+          }
+          if (data.type == "workflow-progress") {
+            if (data?.progress?.status == "pending") {
+              setPendingApproval({
+                workflowName: data.workflowName,
+                instanceId: data.workflowId,
+                progress: data.progress
+              })
+            }
           }
         } catch {
           // Not JSON or not our event
@@ -466,6 +480,48 @@ function Chat() {
           <div ref={messagesEndRef} />
         </div>
       </div>
+
+      {/* Approival */}
+      {pendingApproval && (
+        <div style={{
+          border: "1px solid #ccc",
+          padding: "12px",
+          marginBottom: "12px",
+          borderRadius: "8px"
+        }}>
+          <b>Save this research note?</b>
+
+          {pendingApproval.progress?.title && (
+            <div style={{marginTop: "6px"}}>
+              <small>Title: {pendingApproval.progress.title}</small>
+              <br></br>
+              <small>Synthesis: {pendingApproval.progress.synthesis}</small>
+            </div>
+          )}
+
+          <div style={{display: "flex", gap: "10px", marginTop: "10px"}}>
+            <button onClick={async () => 
+              {if (!pendingApproval) return;
+              await agent.stub.approve(pendingApproval.instanceId);
+              setPendingApproval(null);
+              sendMessage({ role: "assistant", parts: [{ type: "text", text: "The note has been approved and saved" }] });            
+            }
+            }>
+              Approve
+            </button>
+
+            <button onClick={async () => 
+              {if (!pendingApproval) return;
+              await agent.stub.reject(pendingApproval.instanceId);
+              setPendingApproval(null);
+              sendMessage({ role: "assistant", parts: [{ type: "text", text: "The note has been rejected and not saved" }] });
+            }
+            }>
+              Reject
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Input */}
       <div className="border-t border-kumo-line bg-kumo-base">

@@ -65,12 +65,14 @@ export class ResearchWorkflow extends AgentWorkflow<ChatAgent, Params> {
         step: "approval",
         status: "pending",
         message: "Save the urls synthesis as a note?",
+        title,
+        synthesis
     });
     console.log("here6")
 
     let approved = false;
     try {
-        await this.waitForApproval(step, {timeout: "1 hour"});
+        await this.waitForApproval(step, {timeout: "1 minute"});
         approved = true;
     } catch {
         approved = false;
