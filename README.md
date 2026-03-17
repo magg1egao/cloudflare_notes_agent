@@ -1,3 +1,18 @@
+# Research Note Saver
+
+Workflow: 
+- Multi-step research pipeline: User provides url(s) and agent will analyze sources and generate synthesis. Will have human approval to approve/reject saving the note to long-term storage.
+
+Other tools at disposal:
+- listNotes: list all notes
+- fetchUrl: get content of webpage
+- saveNote: save a note
+- displayNote: display/get a specific note
+- deleteNote: delete a note
+
+<video src="video.mp4" width="800" controls></video>
+
+
 # Agent Starter
 
 ![npm i agents command](./npm-agents-banner.svg)
