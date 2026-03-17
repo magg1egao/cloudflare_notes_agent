@@ -46,6 +46,7 @@ export class ChatAgent extends AIChatAgent<Env> {
       - fetchUrl: get content of webpage
       - saveNote: save a note
       - displayNote: display/get a specific note
+      - deleteNote: delete a note
       
       Please only use saveNote when you have the user's permission. Do not saveNote automatically.
       `      
