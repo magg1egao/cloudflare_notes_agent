@@ -12,7 +12,9 @@ Other tools at disposal:
 - displayNote: display/get a specific note
 - deleteNote: delete a note
 
-<video src="video.mp4" width="800" controls></video>
+<!-- <video src="video.mp4" width="800" controls></video> -->
+Demo Video: https://youtu.be/xYCHKLMYOpY
+[![Cloudflare Notes Agent Demo](video_ss.png)](https://youtu.be/xYCHKLMYOpY)
 
 
 # Agent Starter
